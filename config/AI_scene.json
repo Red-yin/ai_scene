@@ -1,0 +1,157 @@
+{
+	"scene":[
+	{
+		"sceneName":"go_home",
+		"id":"123456789012",
+		"variable":[
+			{
+			"id":0,
+			"selector":[
+				{
+					"condID":"0.0",
+					"name":"#POSITION.room#", "operator":"first", "value":["客厅", "default"],
+					"selector":[
+						{
+							"condID":"0.1",
+							"name":"#LIGHTS#", "operator":"exist", "value":null,
+							"selector":[
+								{
+									"condID":"0.1.1",
+									"name":"#TIME.hour#", "operator":"between", "value":{"start":{"point":"#SUNSET#", "offset": -3600}, "end":{"point":"#SUNRISE#", "offset": 3600}},
+									"otherwise":{
+										"condID":"0.1.1.-1",
+										"type":1
+									},
+									"selector":[
+										{
+											"condID":"0.1.1.1",
+											"name":"#LIGHTS.online#", "operator":"any==", "value":"online",
+											"otherwise":{
+												"condID":"0.1.1.1.-1"
+											},
+											"selector":[
+												{
+													"extent":{
+														"type":"and",
+														"conds":[{
+															"type":"and",
+															"conds":[
+																{
+																	"name":"#LIGHTS.position.room#", "operator":"==", "value":"default"
+																},
+																{
+																	"name":"#LIGHTS.online#", "operator":"==", "value":"online"
+																}
+															]
+														}]
+													},
+													"name":"#LIGHTS.remotestatus#", "operator":"any==", "value":"on",
+													"condID":"0.1.1.1.1",
+													"otherwise":{
+														"condID":"0.1.1.1.1.0.-1"
+													},
+													"selector":[
+														{
+															"condID":"0.1.1.1.1.1",
+															"device":{
+																"deviceType":"1",
+																"text":"灯"
+															},
+															"do":{
+																"status":"on",
+																"doName":{
+																	"type":"around",
+																	"text":["把", "打开"],
+																	"other":{
+																		"type":"prefix",
+																		"text":"2分钟后"
+																	}
+																}
+															}
+														}
+													]
+												}
+											]
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+			}
+		]
+	}
+	],
+	"cond_agreed":{
+		"type":"random",
+		"text":["好的,祝你有个愉快的一天", "好的,元气满满的一天又开始了"]
+	},
+	"cond_not_agreed":{
+		"greetings":{
+			"selector":[
+				{
+					"name":"#TIME.hour#", "operator":"between", "value":{"start":{"point":"09:00"}, "end":{"point":":11:00"}},
+					"otherwise":{
+						"name":"#TIME.hour#", "operator":"between", "value":{"start":{"point":"11:00"}, "end":{"point":":13:00"}},
+						"otherwise":{
+							"text":"上午好"
+						},
+						"selector":[
+							{
+								"text":"上午好"
+							}
+						]
+					},
+					"selector":[
+						{
+							"text":"上午好"
+						}
+					]
+				}
+			]
+		},
+		"headText":"我",
+		"tailText":"可以吗",
+		"condText":{
+			"rule":"rule0"
+		}
+	},
+	"otherConditions":{
+		"rule":"first",
+		"conditions":[
+			{
+				"id":"0",
+				"selector":[
+					{
+						"name":"#TIME.hour#", "operator":"between", "value":{"start":{"point":"#SUNSET#", "offset": -3600}, "end":{"point":"#SUNRISE#", "offset": 3600}},
+						"otherwise":{
+							"id":"0.-1"
+						},
+						"selector":[
+							{
+								"name":"#LIGHTS#", "operator":"not_exist", "value":null,
+								"otherwise":{
+									"id":"0,0,-1"
+								},
+								"selector":[
+									{
+										"id":"0,0,0",
+										"type":"random",
+										"text":["您房间如果有调光灯，我就可以帮您打开了","元气满满的一天又开始了","祝你有个愉快的一天"]
+									}
+								]
+							}
+						]
+					}
+				]
+			},
+			{
+				"id":"1",
+				"type":"random",
+				"text":["元气满满的一天又开始了","祝你有个愉快的一天"]
+			}
+		]
+	}
+}

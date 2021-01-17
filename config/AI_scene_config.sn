@@ -1,0 +1,304 @@
+func operator(key, resource, value){
+	if(key == "=="){
+		for item in resource{
+			if(item != value){
+				return 0
+			}
+		}
+		return 1
+	}elif(key == "any=="){
+		for item in resource{
+			if(item == value){
+				return 1
+			}
+		}
+		return 0
+	}elif(key == "!="){
+		for item in resource{
+			if(item == value){
+				return 0
+			}
+		}
+		return 1
+	}elif(key == "<="){
+		for item in resource{
+			if(item > value){
+				return 0
+			}
+		}
+		return 1
+	}elif(key == ">="){
+		for item in resource{
+			if(item < value){
+				return 0
+			}
+		}
+		return 1
+	}elif(key == ">"){
+		for item in resource{
+			if(item <= value){
+				return 0
+			}
+		}
+		return 1
+	}elif(key == "<"){
+		for item in resource{
+			if(item >= value){
+				return 0
+			}
+		}
+		return 1
+	}elif(key == "between"){
+	}elif(key == "exist"){
+		if(resource != NULL){
+			return 1
+		}
+		return 0
+	}elif(key == "not_exist"){
+		if(resource == NULL){
+			return 1
+		}
+		return 0
+	}
+}
+
+func extent(conditions){
+	var ret = []
+	var index = 0
+	if(conditions.conds != NULL){
+		var list = []
+		var count = 0
+		for item in conditions.conds{
+			list[count] = extent(item)
+			count += 1
+		}
+		var contents = list[0]
+		if(conditions.type == "and"){
+			var left = []
+			var left_i = 0
+			for item in list{
+				for c in contents{
+					var s = ToString(c)
+					for o in item{
+						var a = ToString(o)
+						if(a == s){
+							left[left_i] = o
+							left_i += 1
+							break
+						}
+					}
+				}
+				contents = left
+				left_i = 0
+			}
+		}elif(conditions.type == "or"){
+			var left_i = Length(contents)
+			for item in list{
+				for o in item{
+					var a = ToString(o)
+					var len = Length(contents)
+					var j = 0
+					while(j < len){
+						var s = ToString(contents[j])
+						if(a == s){
+							break
+						}
+						j += 1
+					}
+					if(j >= len){
+						contents[left_i] = o
+						left_i += 1
+					}
+				}
+			}
+		}
+		ret = contents
+	}else{
+		if(conditions.name[0] == "#" && conditions.name[-1] == "#"){
+			var name_list = []
+#Spilt(conditions.name[1, -1], ".")
+			var len = Length(name_list)
+			var i = 0
+			if(name_list[0] == "LIGHTS"){
+				var dev = {}
+				var device_list = runCommand("vifamily.device_search", dev)
+				if(conditions.operator == "=="){
+					for item in device_list{
+						var r = item
+						while(i < len){
+							i += 1
+							r = r[name_list[i]]
+						}
+						if(r == conditions.value){
+							ret[index] = item
+							index += 1
+						}
+					}
+				}else{
+					ret = device_list
+				}
+			}elif(name_list[0] == "TIME"){
+				Time()
+			}
+		}
+	}
+	return ret
+}
+
+func get_resource(name, extent){
+	var ret = []
+	var index  = 0
+	var local_extent
+	if(extent == NULL){
+		var conditions = {}
+		conditions.name = name
+		var local_extent = extent(conditions)
+	}else{
+		local_extent = extent
+	}
+	if(name[0] == "#" && name[-1] == "#"){
+#var name_list = Spilt(name[1, -1], ".")
+		var name_list = []
+		var len = Length(name_list)
+		for item in local_extent{
+			var r = item
+			while(i < len){
+				i += 1
+				r = r[name_list[i]]
+			}
+			ret[index] = r
+			index += 1
+		}
+	}
+	return ret
+}
+
+func condition_check(name, key, value, extent){
+	var condition_extent
+	if(extent != NULL){
+		condition_extent = extent(extent)
+		sessionLog(condition_extent, "INFO")
+		if(condition_extent == NULL){
+			return 0
+		}
+	}
+	var resource = get_resource(name, condition_extent)
+	var ret = operator(key, resource, value)
+	return ret
+}
+
+func otherwise(condition){
+	var result = []
+	if(condition.selector != NULL){
+		result = selector(condition.selector)
+	}else{
+		result[0] = condition.condID
+	}
+	return result
+}
+
+func selector(conditions){
+	var result = []
+	var index = 0
+	for item in conditions{
+		sessionLog(item, "INFO")
+		if(item.name != NULL){
+			var ret = condition_check(item.name, item.operator, item.value, item.extent)
+			if(ret == 1){
+			#condition satisfied
+				result[index] = selector(item.selector)
+			}else{
+			#condition not satisfied
+				result[index] = otherwise(item.otherwise)
+			}
+		}else{
+			result[index] = item.selector[0].condID
+		}
+		index += 1
+	}
+	return result
+}
+
+func condition_need_handle(results){
+	var ret = []
+	var index = 0
+	for item in results{
+		if(item.handle != NULL){
+			ret[index] = item
+			index += 1
+		}
+	}
+	return ret
+}
+
+func condition_agreed(conditions){
+
+}
+
+func condition_not_agreed(conditions){
+
+}
+
+func handle_of_condition_agreed(conditions){
+	var handles = []
+	var index = 0
+	for item in conditions{
+		if(item.handle.device != NULL){
+			handles[index] = {}
+		}
+	}
+	return handles
+}
+
+func scene_condition_select(value){
+	sessionLog(value, "INFO")
+	var sceneName = value.value
+	var content = FileRead("/oem/config/AI_scene.json")
+	var results
+	sessionLog(content, "INFO")
+	for item in content.scene{
+		if(item.sceneName == sceneName){
+			if(item.variable.selector != NULL){
+				results = selector(item.variable.selector)
+			}
+		}
+	}
+
+	sessionLog(results, "INFO")
+	var cond_handle = condition_need_handle(results)
+	var text_list = []
+	var index = 0
+	var multidialog_flag = 0
+	var handle
+	if(cond_handle != NULL){
+		var cond_agreed = condition_agreed(cond_handle)
+		var cond_not_agreed = condition_not_agreed(cond_handle)
+		var text0 = text_of_condition_agreed(cond_agreed)
+		var text1 = text_of_condition_not_agreed(cond_not_agreed)
+		handle = handle_of_condition_agreed(cond_agreed)
+		for item in text0{
+			text_list[index] = item
+			index += 1
+		}
+		if(text1 != NULL){
+			for item in text1{
+				text_list[index] = item
+				index += 1
+			}
+			multidialog_flag = 1
+		}
+	}else{
+		text_list = otherConditions(content.otherConditions)
+	}
+	var text = ""
+	for item in text_list{
+		text += item
+		text += "。"
+	}
+	devicesHandle(handle)
+	if(multidialog_flag == 1){
+		response_for_multidialog(text)
+	}else{
+		response_for_tts(text)
+	}
+}
