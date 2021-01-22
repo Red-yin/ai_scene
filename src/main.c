@@ -56,6 +56,28 @@ error:
 	return NULL;
 }
 
+bool aiscene_selector(cJSON *selector)
+{
+	if(selector == NULL){
+		return false;
+	}
+	int len = cJSON_GetArraySize(selector);
+	int i;
+	for(i = 0; i < len; i++){
+		cJSON *selector_item = cJSON_GetArrayItem(selector, i);
+		if(selector_item == NULL){
+			err("selector %d item error", i);
+			return false;
+		}
+		cJSON *extent = cJSON_GetArrayItem(selector_item, "extent");
+		if(extent == NULL){
+			err("selector item %d has no extent", i);
+			return false;
+		}
+
+	}
+}
+
 void aiscene_run(const char *name)
 {
 	cJSON *content = file_read(filename);
@@ -82,17 +104,17 @@ void aiscene_run(const char *name)
 			exit(-1);
 		}
 		if(sceneName->valuestring == name){
-			cJSON *variable = cJSON_GetObjectItem(scene_item, "variable");
-			if(variable == NULL){
-				err("scene %s has no variable", name);
+			cJSON *condition0 = cJSON_GetObjectItem(scene_item, "condition0");
+			if(condition0 == NULL){
+				err("scene %s has no condigion0", name);
 				return;
 			}
-			cJSON *selector = cJSON_GetObjectItem(variable, selector);
+			cJSON *selector = cJSON_GetObjectItem(condition0, selector);
 			if(selector == NULL){
 				wrn("%s variable has no selector", name);
 				return;
 			}
-			aiscene_selector(selector);
+			bool result = aiscene_selector(selector);
 		}
 	}
 }
